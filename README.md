@@ -2,7 +2,7 @@
 
 ## Indexing dataframes
 
-- example:
+- Example 1:
 ```
 index   col1    col2
 3       1.0     2
@@ -22,7 +22,7 @@ df.ix['a']     # third row
 ix usually tries to behave like loc but falls back to behaving like iloc if a label is not present in the index.
 
 
-- example 2
+- Example 2
 ```
      col1  col2
 100     1     4
@@ -41,12 +41,25 @@ df.iloc[df['col1'] == 1]
 # gives index error!!!
 ```
 
-- reset index (intruduces indices from 0 to len(df)-1)
-Use the drop parameter to avoid the old index being added as a column:
+- reset_index (intruduces indices from 0 to len(df)-1)
 
 ```python
 df.reset_index(drop=True)
+# drop=True --> avoid the old index being added as a column:
 ```
+
+## Dataframes v.s. Series
+A Series can be understood as a single row of a DataFrame
+- Example 1
+```python
+df = pd.DataFrame({'col1': [1,2,3], 'col2': [4,5,6]}, index=['a','b','c'])
+sr = df.loc['b'] # get row with index b
+# sr.name is 'b'
+df = df.append(sr) # the name of the series will be used as row index in the dataframe
+
+df.iloc[0] = sr # replaces first row of the dataframe with the series
+```
+
 
 ## Append v.s. concatenate
 
@@ -59,7 +72,7 @@ df.append(other, ignore_index=False, verify_integrity=False, sort=None)
 ```
 
 - Concat is almost the same, but accepts list of more than two dataframes
-calling append with each dataframe will be less performant that using concat once on a list of dataframe since each concat and append call makes a full copy of the data.
+Calling append with each dataframe will be less performant that using concat once on a list of dataframe since each concat and append call makes a full copy of the data.
 ```python
 df.concat(df_list, axis=0, ignore_index=False, copy=True)
 # copy=False --> do not copy data unnecessarily
@@ -71,7 +84,7 @@ Example to build up a dataframe in a dynamic fashion (useful when size of datafr
 # create an empty dataframe
 df = pd.DataFrame(columns=['col1', 'col2'])
 
-# create an empty dataframe with same columns as another df
+# or create an empty dataframe with same columns as another df
 df = pd.DataFrame(columns=df_orig.columns.tolist())
 
 for i in range(nr_iterations):
@@ -97,21 +110,18 @@ Pandas generates the warning when it detects something called chained assignment
 
 e.g.:
 ```python
-df[data.bidder == 'parakeet2004']['bidderrate'] = 100
-df.loc[data['bidder'] == 'parakeet2004']['bidderrate'] = 100
-```
+df[data.age == 21]['score'] = 100
+df.loc[data['age'] == '21']['score'] = 100 # equivalent
 
-or in two lines:
-```python
+# or in two lines
 df_temp = df[df['age'] > 10]
 df_temp['score'] = 99
 ```
---> triggers warning
---> failed assignment, as 
+triggers warning and results in failed assignment
 
 reason: df[data.bidder == 'parakeet2004'] creates a copy of the dataframe!
  
-HOW TO DO IT CORRECTLY?
+### How to do it correctly?
 make exactly a single call to one of the indexers:
 ```python
 df.loc[df['age'] > 10, 'score'] = 99
@@ -122,8 +132,6 @@ condition > 10 applies to column 'age', while the assignment is done to column '
 df[df.iloc[:, 12] == 2] = 99
 ```
 
---> changes all rows of the 13rd column!!! note df[df.iloc[:, 'score'] == 2] would be invalid, you have to work with row/column numbers, and not row indexes/column names
+Changes all rows of the 13rd column!!! note df[df.iloc[:, 'score'] == 2] would be invalid, you have to work with row/column numbers, and not row indexes/column names
 
-note: this now changes the values of df, BUT: the warning is still triggered (Pandas does not know if you want to modify the original DataFrame or just the first subset selection)
-
-  """
+Note: this now changes the values of df, BUT: the warning is still triggered (Pandas does not know if you want to modify the original DataFrame or just the first subset selection)
