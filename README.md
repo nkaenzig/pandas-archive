@@ -122,11 +122,11 @@ triggers warning and results in failed assignment
 reason: df[data.bidder == 'parakeet2004'] creates a copy of the dataframe!
  
 ### How to do it correctly?
-make exactly a single call to one of the indexers:
+Make exactly a single call to one of the indexers:
 ```python
 df.loc[df['age'] > 10, 'score'] = 99
 ```
-condition > 10 applies to column 'age', while the assignment is done to column 'score'
+Condition > 10 applies to column 'age', while the assignment is done to column 'score'
 
 ```python
 df[df.iloc[:, 12] == 2] = 99
@@ -135,3 +135,95 @@ df[df.iloc[:, 12] == 2] = 99
 Changes all rows of the 13rd column!!! note df[df.iloc[:, 'score'] == 2] would be invalid, you have to work with row/column numbers, and not row indexes/column names
 
 Note: this now changes the values of df, BUT: the warning is still triggered (Pandas does not know if you want to modify the original DataFrame or just the first subset selection)
+
+
+
+
+# Working with big datasets
+## Reading in chunks
+```python
+df = pd.read_csv(r'../input/data.csv', chunksize=1000000)
+
+chunks_list = []  # append each chunk df here 
+
+# Each chunk is in df format
+for df_chunk in df:  
+    # perform data processing and filtering 
+    df_chunk_processed = chunk_preprocessing(df_chunk)
+    
+    # Once the data filtering is done, append the chunk to list
+    chunks_list.append(chunk_filter)
+    
+# concat the list into one dataframe 
+df_concat = pd.concat(chunks_list)
+```
+
+## dtypes
+When a dataset gets larger, we need to convert the dtypes in order to save memory. 
+By default integer types are int64 and float types are float64, REGARDLESS of platform (32-bit or 64-bit). The following will all result in int64 dtypes.
+
+- Example 1
+```python
+df[int_columns] = df[int_columns].astype('int8')
+df[int_columns] = df[int_columns].astype('int16')
+df[int_columns] = df[int_columns].astype('int32')
+df[float_columns] = df[float_columns].astype('float8')
+df[float_columns] = df[float_columns].astype('float16')
+df[float_columns] = df[float_columns].astype('float32')
+```
+
+# Dataframe filtering and processing
+
+## Dealing with missing values (np.nan)
+dropna() (which removes NA values) and fillna()
+
+Often the missing values are not np.nan but have another value like 0 or '-'.
+You have to replace these first with np.nan to use pandas N/A-functions.
+```python
+df.replace({1: np.nan})
+df.replace({'-': np.nan})
+# or one-liners:
+df.replace(to_replace={0: np.nan, '-': np.nan})
+df.replace(to_replace=[0, '-'], value=np.nan)
+
+# caution: this, might change the dtypes of the df columns
+```
+
+Now we can drop rows/cols with missing values with dropna()
+Note: use how or thresh parameters:
+```
+how='any': at least one N/A (default)
+how='all': all entries have to be N/A
+thresh=3: minimum number of non-null values for the row/column to be kept:
+```
+
+```python
+df.dropna(axis=0) # drops all ROWS with at least one N/A entry
+df.dropna(axis=0, how='all') # drops all ROWS where all elements are N/A
+df.dropna(axis=1) # drops all COLUMNS with at least one N/A entry
+
+# drop all columns where more than 90% of the values are N/A
+df.dropna(axis=1, thresh=int(0.9*df.shape[0]))
+
+```
+
+## Categorical columns
+Split dataframe into categorical and numerical columns
+```python
+df_cat = df.select_dtypes(include=['object'])
+df_num = df.drop(df.columns, axis=1, inplace=True)
+```
+
+See helper functions in pandas-helpers.py (""" FUNCTIONS FOR CATEGORICAL COLUMNS """)
+
+## Replace/remove strings in df columns
+```python
+
+df[col].replace('\n', '', regex=True, inplace=True)
+
+# remove all the characters after &# (including &#) for column - col_1
+df[col].replace(' &#.*', '', regex=True, inplace=True)
+
+# remove white space at the beginning of string 
+df[col] = df[col].str.lstrip()
+```
