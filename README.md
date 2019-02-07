@@ -197,6 +197,17 @@ how='all': all entries have to be N/A
 thresh=3: minimum number of non-null values for the row/column to be kept:
 ```
 
+For columns, where only a few values are missing, it might be meaningful to replace the NaN values with the mean value (for numerical columns) or the most frequent value (for categorical columns):
+
+```python
+# mean
+df = df.fillna(df.mean())
+# most frequent value
+df = df.fillna(df.mode())
+# outdated method for most frequent value (interesting for learning)
+df = df.apply(lambda x:x.fillna(x.value_counts().index[0]))
+```
+
 ```python
 df.dropna(axis=0) # drops all ROWS with at least one N/A entry
 df.dropna(axis=0, how='all') # drops all ROWS where all elements are N/A
@@ -211,7 +222,8 @@ df.dropna(axis=1, thresh=int(0.9*df.shape[0]))
 Split dataframe into categorical and numerical columns
 ```python
 df_cat = df.select_dtypes(include=['object'])
-df_num = df.drop(df.columns, axis=1, inplace=True)
+df.drop(df_cat.columns, axis=1, inplace=True) 
+# df now holds only numerical columns
 ```
 
 See helper functions in pandas-helpers.py (""" FUNCTIONS FOR CATEGORICAL COLUMNS """)
@@ -226,4 +238,16 @@ df[col].replace(' &#.*', '', regex=True, inplace=True)
 
 # remove white space at the beginning of string 
 df[col] = df[col].str.lstrip()
+```
+
+# Plotting
+## Frequency Plot of a columns
+```python
+df[column_name].value_counts().plot.bar()
+```
+
+## Box Plots
+Generate boxplots of one ore multiple columns
+```python
+df_num[['LotFrontage', 'OverallQual', 'MasVnrArea']].plot.box()
 ```
