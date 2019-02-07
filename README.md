@@ -240,6 +240,15 @@ df[col].replace(' &#.*', '', regex=True, inplace=True)
 df[col] = df[col].str.lstrip()
 ```
 
+# Preprocessing
+## Standardization
+```python
+# good way
+df = (df-df.mean())/df.std()
+# bad way
+df = df.apply(lambda x:(x-x.mean())/x.std())
+```
+
 # Plotting
 ## Frequency Plot of a columns
 ```python
