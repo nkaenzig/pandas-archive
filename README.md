@@ -247,6 +247,9 @@ df[col] = df[col].str.lstrip()
 df = (df-df.mean())/df.std()
 # bad way
 df = df.apply(lambda x:(x-x.mean())/x.std())
+# using sklearn
+from sklearn.preprocessing import StandardScaler
+df = pd.DataFrame(scaler.fit_transform(df.values))
 ```
 
 # Plotting
