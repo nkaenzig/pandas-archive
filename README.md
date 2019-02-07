@@ -137,8 +137,6 @@ Changes all rows of the 13rd column!!! note df[df.iloc[:, 'score'] == 2] would b
 Note: this now changes the values of df, BUT: the warning is still triggered (Pandas does not know if you want to modify the original DataFrame or just the first subset selection)
 
 
-
-
 # Working with big datasets
 ## Reading in chunks
 ```python
@@ -188,7 +186,6 @@ df.replace(to_replace=[0, '-'], value=np.nan)
 
 # caution: this, might change the dtypes of the df columns
 ```
-
 Now we can drop rows/cols with missing values with dropna()
 Note: use how or thresh parameters:
 ```
@@ -222,9 +219,32 @@ df.dropna(axis=1, thresh=int(0.9*df.shape[0]))
 Split dataframe into categorical and numerical columns
 ```python
 df_cat = df.select_dtypes(include=['object'])
+df_num = df.select_dtypes(exclude=['object'])
+# or delete categorical colums from df
 df.drop(df_cat.columns, axis=1, inplace=True) 
-# df now holds only numerical columns
+# or
+df_num = df._get_numeric_data()
 ```
+
+Enumerate categories
+```python
+df_cat.astype('category')
+# A
+df_cat = df_cat.apply(lambda x: x.cat.codes)
+# B
+for col_name in df_cat:
+    df_cat[col_name] = df_cat[col_name].cat.codes
+```
+
+One-hot encoding
+```python
+for col_name in df_cat:
+     df_dummies = pd.get_dummies(df[col_name], prefix='category')
+     df_cat = pd.concat([df_cat, df_dummies], axis=1)
+     df_cat = df.drop(col_name, axis=1)
+```
+
+
 
 See helper functions in pandas-helpers.py (""" FUNCTIONS FOR CATEGORICAL COLUMNS """)
 
@@ -262,4 +282,10 @@ df[column_name].value_counts().plot.bar()
 Generate boxplots of one ore multiple columns
 ```python
 df_num[['LotFrontage', 'OverallQual', 'MasVnrArea']].plot.box()
+```
+
+# MISC
+## Create a dictionary from two DataFrame Columns
+```python
+dictionary = pd.Series(df['val_col'].values, index=df['key_col']).to_dict()
 ```
