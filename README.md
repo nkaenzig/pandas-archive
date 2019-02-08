@@ -272,6 +272,69 @@ from sklearn.preprocessing import StandardScaler
 df = pd.DataFrame(scaler.fit_transform(df.values))
 ```
 
+# Grouping
+
+# MultiIndexing
+You can think of MultiIndex as an array of tuples where each tuple is unique. A MultiIndex can be created from a list of arrays (using MultiIndex.from_arrays()), an array of tuples (using MultiIndex.from_tuples()), a crossed set of iterables (using MultiIndex.from_product()), or a DataFrame (using MultiIndex.from_frame()).
+
+"Multi-Columns"
+```python
+In [84]: cols = pd.MultiIndex.from_tuples([(x, y) for x in ['A', 'B', 'C']
+   ....:                                   for y in ['O', 'I']])
+   ....: 
+
+In [85]: df = pd.DataFrame(np.random.randn(2, 6), index=['n', 'm'], columns=cols)
+
+In [86]: df
+Out[86]: 
+          A                   B                   C          
+          O         I         O         I         O         I
+n  1.920906 -0.388231 -2.314394  0.665508  0.402562  0.399555
+m -1.765956  0.850423  0.388054  0.992312  0.744086 -0.739776
+```
+
+"Multi-Index"
+```python
+In [8]: iterables = [['bar', 'baz', 'foo', 'qux'], ['one', 'two']]
+
+In [9]: index = pd.MultiIndex.from_product(iterables, names=['first', 'second'])
+In[10]: index 
+Out[10]: 
+MultiIndex(levels=[['bar', 'baz', 'foo', 'qux'], ['one', 'two']],
+           codes=[[0, 0, 1, 1, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]],
+           names=['first', 'second'])
+
+In [11]: pd.Series(np.random.randn(8), index=index)
+Out[11]: 
+first  second
+bar    one       0.469112
+       two      -0.282863
+baz    one      -1.509059
+       two      -1.135632
+foo    one       1.212112
+       two      -0.173215
+qux    one       0.119209
+       two      -1.044236
+dtype: float64
+```
+
+## caution with chained indexing
+```python
+Out[340]: 
+    one          two       
+  first second first second
+0     a      b     c      d
+1     e      f     g      h
+2     i      j     k      l
+3     m      n     o      p
+
+# chained --> value assignments will fail
+dfmi['one']['second']
+
+# correct: single access
+dfmi.loc[:, ('one', 'second')]
+```
+
 # Plotting
 ## Frequency Plot of a columns
 ```python
@@ -284,8 +347,23 @@ Generate boxplots of one ore multiple columns
 df_num[['LotFrontage', 'OverallQual', 'MasVnrArea']].plot.box()
 ```
 
+
 # MISC
 ## Create a dictionary from two DataFrame Columns
 ```python
 dictionary = pd.Series(df['val_col'].values, index=df['key_col']).to_dict()
 ```
+
+## isin()
+```python
+df[~df[col_name].isin(a_set)]
+df[~df[col_name].isin(a_list)]
+df[~df[col_name].isin(a_dict)]
+df[~df.index.isin(a_list)]
+```
+
+
+# Resources
+This is a repository for short and sweet examples and links for useful pandas recipes. 
+[Pandas Cookbook](https://pandas.pydata.org/pandas-docs/stable/user_guide/cookbook.html#cookbook-selection)
+
