@@ -335,18 +335,6 @@ dfmi['one']['second']
 dfmi.loc[:, ('one', 'second')]
 ```
 
-# Plotting
-## Frequency Plot of a columns
-```python
-df[column_name].value_counts().plot.bar()
-```
-
-## Box Plots
-Generate boxplots of one ore multiple columns
-```python
-df_num[['LotFrontage', 'OverallQual', 'MasVnrArea']].plot.box()
-```
-
 # Configure Pandas
 ```python
 import pandas as pd
@@ -375,15 +363,16 @@ if __name__ == '__main__':
 ```
 
 # Datetime 
-[Pandas Timeseries Reference]https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#
-[Pandas Time/Date Components]https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#time-date-components
-[Pandas Frequency Strings]https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
 Concept | Scalar Class | Array Class | pandas Data Type | Primary Creation Method
 --- | --- | --- | --- | ---
 Date times | Timestamp | DatetimeIndex | datetime64[ns] or datetime64[ns, tz] | to_datetime or date_range
 Time deltas | Timedelta | TimedeltaIndex | timedelta64[ns] | to_timedelta or timedelta_range
 Time spans | Period | PeriodIndex | period[freq] | Period or period_range
 Date offsets | DateOffset | None | None | DateOffset
+
+[Pandas Timeseries Reference](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#)
+[Pandas Time/Date Components](https://pandas.pydata.org/pandas-docs/stable/user_guide/)timeseries.html#time-date-components
+[Pandas Frequency Strings](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects)
 
 ## Timezones
 - To supply the time zone, you can use the tz keyword to date_range and other functions. 
@@ -510,7 +499,7 @@ df[~df[col_name].isin(a_dict)]
 df[~df.index.isin(a_list)]
 ```
 
-## Creating toy DatFrames
+## Creating toy DataFrames
 Useful for testing, exploring new pandas methods.
 Note: 
 ```python
@@ -538,7 +527,7 @@ df[col_name].str.count(r'\d') # counts number of digits
 
 ```
 
-Split string column in multiple columns using regex
+Split string column in multiple columns using extract(regex)
 ```python
 In [2]: addr = pd.Series([
    ...:      'Washington, D.C. 20003',
