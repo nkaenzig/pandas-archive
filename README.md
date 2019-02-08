@@ -376,14 +376,12 @@ if __name__ == '__main__':
 
 # Datetime 
 
-```
 Concept | Scalar Class | Array Class | pandas Data Type | Primary Creation Method
 --- | --- | --- | --- | ---
 Date times | Timestamp | DatetimeIndex | datetime64[ns] or datetime64[ns, tz] | to_datetime or date_range
 Time deltas | Timedelta | TimedeltaIndex | timedelta64[ns] | to_timedelta or timedelta_range
 Time spans | Period | PeriodIndex | period[freq] | Period or period_range
 Date offsets | DateOffset | None | None | DateOffset
-```
 
 ```python
 # create daterange (freq: {'D', 'M', 'Q', 'Y'})
