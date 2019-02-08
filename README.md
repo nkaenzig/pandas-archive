@@ -347,6 +347,127 @@ Generate boxplots of one ore multiple columns
 df_num[['LotFrontage', 'OverallQual', 'MasVnrArea']].plot.box()
 ```
 
+# Configure Pandas
+```python
+import pandas as pd
+
+def pd_config():
+    options = {
+        'display': {
+            'max_colwidth': 25,
+            'expand_frame_repr': False,  # Don't wrap to multiple pages
+            'max_rows': 14,
+            'max_seq_items': 50,         # Max length of printed sequence
+            'precision': 4,
+            'show_dimensions': False
+        },
+        'mode': {
+            'chained_assignment': None   # Controls SettingWithCopyWarning
+        }
+    }
+
+    for category, option in options.items():
+        for op, value in option.items():
+            pd.set_option(f'{category}.{op}', value)  # Python 3.6+
+
+if __name__ == '__main__':
+    pd_config()
+```
+
+# Datetime 
+
+```
+Concept | Scalar Class | Array Class | pandas Data Type | Primary Creation Method
+--- | --- | --- | --- | ---
+Date times | Timestamp | DatetimeIndex | datetime64[ns] or datetime64[ns, tz] | to_datetime or date_range
+Time deltas | Timedelta | TimedeltaIndex | timedelta64[ns] | to_timedelta or timedelta_range
+Time spans | Period | PeriodIndex | period[freq] | Period or period_range
+Date offsets | DateOffset | None | None | DateOffset
+```
+
+```python
+# create daterange (freq: {'D', 'M', 'Q', 'Y'})
+In [5]: sr_dates = pd.Series(pd.date_range('2017', periods=4, freq='Q'))
+
+In [6]: sr_dates
+Out[6]: 
+0   2017-03-31
+1   2017-06-30
+2   2017-09-30
+3   2017-12-31
+dtype: datetime64[ns]
+
+# get weekdays of elements in datetime series
+In [7]: sr_dates.dt.day_name()
+Out[7]: 
+0      Friday
+1      Friday
+2    Saturday
+3      Sunday
+dtype: object
+
+# convert a single datecolumn to datetime series
+In [20]: df = pd.DataFrame(np.ones(5), columns=['Date'])
+
+In [21]: df['Date'] = '2017-12##13'
+
+In [22]: df
+Out[22]: 
+          Date
+0  2017-12##13
+1  2017-12##13
+2  2017-12##13
+3  2017-12##13
+4  2017-12##13
+
+In [23]: df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m##%d')
+Out[23]: 
+0   2017-12-13
+1   2017-12-13
+2   2017-12-13
+3   2017-12-13
+4   2017-12-13
+Name: Date, dtype: datetime64[ns]
+
+# Create a DatetimeIndex From Component Columns
+>>> from itertools import product
+>>> datecols = ['year', 'month', 'day']
+
+date_tuples = list(product([2017, 2016], [1, 2], [1, 2, 3])) # list with tuples (year, month, day)
+>>> df = pd.DataFrame(date_tuples, columns=datecols)
+>>> df['data'] = np.random.randn(len(df))
+>>> df
+    year  month  day    data
+0   2017      1    1 -0.0767
+1   2017      1    2 -1.2798
+2   2017      1    3  0.4032
+3   2017      2    1  1.2377
+4   2017      2    2 -0.2060
+5   2017      2    3  0.6187
+6   2016      1    1  2.3786
+7   2016      1    2 -0.4730
+8   2016      1    3 -2.1505
+9   2016      2    1 -0.6340
+10  2016      2    2  0.7964
+11  2016      2    3  0.0005
+
+# the date column names must be named: [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) 
+>>> df.index = pd.to_datetime(df[datecols])
+>>> df.head()
+            year  month  day    data
+2017-01-01  2017      1    1 -0.0767
+2017-01-02  2017      1    2 -1.2798
+2017-01-03  2017      1    3  0.4032
+2017-02-01  2017      2    1  1.2377
+2017-02-02  2017      2    2 -0.2060
+```
+Note: If you pass a DataFrame to to_datetime() as argument, it will look for columns with names ‘year’, ‘month’, ‘day’, etc. and will set the indexx of the dataframe to the datetimes it extracted from these columns.
+If you pass a Series to to_datetime() holding raw string dates, you must specify the format of these strings with format=..., and pandas will then return a Series with dtype=datetime. 
+```
+format example:
+'05SEP2014:00:00:00.000'
+'%d%b%Y:%H:%M:%S.%f'
+```
 
 # MISC
 ## Create a dictionary from two DataFrame Columns
@@ -362,6 +483,74 @@ df[~df[col_name].isin(a_dict)]
 df[~df.index.isin(a_list)]
 ```
 
+## Creating toy DatFrames
+Useful for testing, exploring new pandas methods.
+Note: 
+```
+>>> pd.util.testing.makeTimeDataFrame(nper=5, freq='M')
+                 A       B       C
+2000-01-31  0.3574 -0.8804  0.2669
+2000-02-29  0.3775  0.1526 -0.4803
+2000-03-31  1.3823  0.2503  0.3008
+2000-04-30  1.1755  0.0785 -0.1791
+2000-05-31 -0.9393 -0.9039  1.1837
+
+>>> pd.util.testing.makeDataFrame().head()
+# note: no arguments, always 30 rows and 4 cols
+                 A       B       C
+nTLGGTiRHF -0.6228  0.6459  0.1251
+WPBRn9jtsR -0.3187 -0.8091  1.1501
+7B3wWfvuDA -1.9872 -1.0795  0.2987
+yJ0BTjehH1  0.8802  0.7403 -1.2154
+0luaYUYvy1 -0.9320  1.2912 -0.2907
+```
+
+## Accessor methods
+```
+>>> pd.Series._accessors
+{'cat', 'str', 'dt'}
+```
+
+### String accessor .str (for dtype='object')
+```python
+# convert column to UPPERCASE
+df[col_name].str.upper()
+
+# count string occurence in each column
+df[col_name].str.count(r'\d') # counts number of digits
+
+```
+
+Split string column in multiple columns using regex
+```python
+In [2]: addr = pd.Series([
+   ...:      'Washington, D.C. 20003',
+   ...:      'Brooklyn, NY 11211-1755',
+   ...:      'Omaha, NE 68154',
+   ...:      'Pittsburgh, PA 15211'
+   ...:  ])
+
+In [3]: regex = (r'(?P<city>[A-Za-z ]+), '       # One or more letters followed by ,
+   ...:           r'(?P<state>[A-Z]{2}) '        # 2 capital letters
+   ...:           r'(?P<zip>\d{5}(?:-\d{4})?)')  # 5-digits + optional 4-digit extension
+
+In [4]: addr.str.replace('.', '').str.extract(regex)
+Out[4]: 
+         city state         zip
+0  Washington    DC       20003
+1    Brooklyn    NY  11211-1755
+2       Omaha    NE       68154
+3  Pittsburgh    PA       15211
+```
+
+## Get memory usage
+```python
+# get memory usage of each column
+df.memory_usage(index=False, deep=True)
+
+# compare to memory usage after type conversion
+df.astype('category').memory_usage(index=False, deep=True)
+```
 
 # Resources
 This is a repository for short and sweet examples and links for useful pandas recipes. 
