@@ -375,7 +375,9 @@ if __name__ == '__main__':
 ```
 
 # Datetime 
-
+[Pandas Timeseries Reference]https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#
+[Pandas Time/Date Components]https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#time-date-components
+[Pandas Frequency Strings]https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects
 Concept | Scalar Class | Array Class | pandas Data Type | Primary Creation Method
 --- | --- | --- | --- | ---
 Date times | Timestamp | DatetimeIndex | datetime64[ns] or datetime64[ns, tz] | to_datetime or date_range
@@ -383,6 +385,33 @@ Time deltas | Timedelta | TimedeltaIndex | timedelta64[ns] | to_timedelta or tim
 Time spans | Period | PeriodIndex | period[freq] | Period or period_range
 Date offsets | DateOffset | None | None | DateOffset
 
+## Timezones
+- To supply the time zone, you can use the tz keyword to date_range and other functions. 
+```python
+# list of all available timezones
+from pytz import common_timezones, all_timezones
+# some common values: 'UTC', 'GMT', 'US/Central', 'US/Eastern', 'Europe/Rome'
+# UTC and GMT are same practically, but GMT is a time zone and UTC is a time standard.
+```
+- Under the hood, all timestamps are stored in UTC --> comparing Timestamps with with different timezones but same UTC time yields True
+```python
+rng_utc = pd.date_range('3/6/2012 00:00', periods=5, freq='D', tz='UTC')
+rng_eastern = rng_utc.tz_convert('US/Eastern')
+rng_berlin = rng_utc.tz_convert('Europe/Berlin')
+rng_eastern == rng_berlin
+
+Out[0]: pandas._libs.tslibs.timestamps.Timestamp
+```
+
+- Create pandas.core.indexes.datetimes.DatetimeIndex series
+```python
+pd.date_range(start='1/1/2018', periods=12, freq='M')
+pd.date_range(start='2018-04-24', end='2018-04-27', freq='D')
+pd.date_range(start='2018-04-24', freq='Y', periods=10)
+pd.date_range(start='2018-04-24', end='2018-04-27', periods=1000)
+```
+
+## Convert non datetime date to datetime
 ```python
 # create daterange (freq: {'D', 'M', 'Q', 'Y'})
 In [5]: sr_dates = pd.Series(pd.date_range('2017', periods=4, freq='Q'))
@@ -484,27 +513,17 @@ df[~df.index.isin(a_list)]
 ## Creating toy DatFrames
 Useful for testing, exploring new pandas methods.
 Note: 
-```
->>> pd.util.testing.makeTimeDataFrame(nper=5, freq='M')
-                 A       B       C
-2000-01-31  0.3574 -0.8804  0.2669
-2000-02-29  0.3775  0.1526 -0.4803
-2000-03-31  1.3823  0.2503  0.3008
-2000-04-30  1.1755  0.0785 -0.1791
-2000-05-31 -0.9393 -0.9039  1.1837
+```python
+# standard index
+df = pd.DataFrame(np.random.randn(1000, 4), columns=list('ABCD'))
 
->>> pd.util.testing.makeDataFrame().head()
-# note: no arguments, always 30 rows and 4 cols
-                 A       B       C
-nTLGGTiRHF -0.6228  0.6459  0.1251
-WPBRn9jtsR -0.3187 -0.8091  1.1501
-7B3wWfvuDA -1.9872 -1.0795  0.2987
-yJ0BTjehH1  0.8802  0.7403 -1.2154
-0luaYUYvy1 -0.9320  1.2912 -0.2907
+# timeseries index
+ts = pd.Series(np.random.randn(1000), index=pd.date_range('1/1/2000', periods=1000))
+df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index, columns=list('ABCD'))
 ```
 
 ## Accessor methods
-```
+```python
 >>> pd.Series._accessors
 {'cat', 'str', 'dt'}
 ```
@@ -551,6 +570,6 @@ df.astype('category').memory_usage(index=False, deep=True)
 ```
 
 # Resources
+- [Pandas Cookbook](https://pandas.pydata.org/pandas-docs/stable/user_guide/cookbook.html#cookbook-selection)
 This is a repository for short and sweet examples and links for useful pandas recipes. 
-[Pandas Cookbook](https://pandas.pydata.org/pandas-docs/stable/user_guide/cookbook.html#cookbook-selection)
 
