@@ -272,7 +272,33 @@ from sklearn.preprocessing import StandardScaler
 df = pd.DataFrame(scaler.fit_transform(df.values))
 ```
 
-# Grouping
+# Reshaping
+## Grouping
+
+## Pivoting
+[Pivoting](https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html#reshaping)
+- example
+```python
+import seaborn as sns
+df_flights_long = sns.load_dataset("flights")
+df_flights = flights_long.pivot(index="month", columns="year", values="passengers")
+
+# df_flights_long
+year	month	passengers
+0	1949	January	112
+1	1949	February	118
+2	1949	March	132
+.
+.
+.
+
+# df_flights
+year	1949	1950	1951	1952	1953	1954	1955	1956	1957	1958	1959	1960
+month												
+January	112	115	145	171	196	204	242	284	315	340	360	417
+February	118	126	150	180	196	188	233	277	301	318	342	391
+March	132	141	178	193	236	235	267	317	356	362	406	419
+```
 
 # MultiIndexing
 You can think of MultiIndex as an array of tuples where each tuple is unique. A MultiIndex can be created from a list of arrays (using MultiIndex.from_arrays()), an array of tuples (using MultiIndex.from_tuples()), a crossed set of iterables (using MultiIndex.from_product()), or a DataFrame (using MultiIndex.from_frame()).
