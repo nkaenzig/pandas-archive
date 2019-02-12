@@ -171,6 +171,11 @@ df[float_columns] = df[float_columns].astype('float32')
 ```
 
 # Dataframe filtering and processing
+## Split dataframe into features & labels
+```python
+df_labels = df.pop(label_colname)
+df_features = df
+```
 
 ## Dealing with missing values (np.nan)
 dropna() (which removes NA values) and fillna()
@@ -512,6 +517,15 @@ format example:
 ```
 
 # MISC
+## Create dummy dataframes with random data
+```python
+df = pd.DataFrame(np.random.randn(100, 4), columns=list('ABCD'))
+
+# | with time index
+dates = pd.date_range(start='2018-04-24', freq='D', periods=100)
+df_time = pd.DataFrame(np.random.randn(100, 4), columns=list('ABCD'), index=dates)
+```
+
 ## Create a dictionary from two DataFrame Columns
 ```python
 dictionary = pd.Series(df['val_col'].values, index=df['key_col']).to_dict()
