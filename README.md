@@ -278,7 +278,181 @@ df = pd.DataFrame(scaler.fit_transform(df.values))
 ```
 
 # Reshaping
-## Grouping
+## Group By (split-apply-combine)
+1. <strong>Splitting</strong> the data into groups based on some criteria.
+2. <strong>Applying</strong> a function to each group independently.
+3. <strong>Combining</strong> the results into a data structure.
+
+### "Splitting" / Grouping
+```python
+grouped = df.groupby('Gender')
+grouped = df.groupby(['Gender', 'Age']) # this creates groups of the same gender & same age
+
+# | If the axis is a MultiIndex (hierarchical), group by a particular level or levels
+Heart Disease          Yes     No   
+High Blood Pressure    Yes No Yes No
+Sex    Marital Status              
+Female Single            5  0   3  3
+       Married           7  9   3  5
+Male   Single            2  4   7  6
+       Married           8  8   1  6
+
+df.groupby(level=0).sum() # groups by first index (Sex), and calculates sum of Single and Married
+df.groupby(level='Sex').sum() # works only if indices have names defined
+
+Heart Disease	    Yes	    No
+High Blood Pressure	Yes	No	Yes	No
+Sex				
+Female	            5	10	3	4
+Male	            8	14	13	6
+
+# | using function to create groups
+def get_letter_type(letter):
+    if letter.lower() in 'aeiou':
+        return 'vowel'
+    else:
+        return 'consonant'
+
+grouped = df.groupby(get_letter_type, axis=1) # axis=1: split by columns and not by index
+
+# | By default the group keys are sorted during the groupby operation. You may however pass sort=False for potential 
+df2.groupby(['X'], sort=False).sum()
+
+# | access a group
+df3.groupby(['Gender']).get_group('Female')
+# Or for an object grouped on multiple columns:
+df.groupby(['Gender', 'Age']).get_group(('Male', 26))
+```
+- Iterating through groups
+df.groupby(...) returns a GroupBy object (a DataFrameGroupBy or SeriesGroupBy), and with this, you can iterate through the groups
+
+```python
+grouped = df.groupby('A')
+
+for name, group in grouped:
+    # | group is a dataframe
+    ...
+```
+
+- GroupBy object attributes
+```python
+In [27]: df.groupby('A').groups
+Out[27]: 
+{'bar': Int64Index([1, 3, 5], dtype='int64'),
+ 'foo': Int64Index([0, 2, 4, 6, 7], dtype='int64')}
+
+ In [34]: gb.<TAB>  # noqa: E225, E999
+gb.agg        gb.boxplot    gb.cummin     gb.describe   gb.filter     gb.get_group  gb.height     gb.last       gb.median     gb.ngroups    gb.plot       gb.rank       gb.std        gb.transform
+gb.aggregate  gb.count      gb.cumprod    gb.dtype      gb.first      gb.groups     gb.hist       gb.max        gb.min        gb.nth        gb.prod       gb.resample   gb.sum        gb.var
+gb.apply      gb.cummax     gb.cumsum     gb.fillna     gb.gender     gb.head       gb.indices    gb.mean       gb.name       gb.ohlc       gb.quantile   gb.size       gb.tail       gb.weight
+```
+
+TODO: https://stackoverflow.com/questions/44635626/rename-result-columns-from-pandas-aggregation-futurewarning-using-a-dict-with
+
+
+### "Applying" (Aggregation, Transformation, Filtration)
+- (Std & Custom Aggregations)
+Aggregation via the aggregate() or equivalently agg() method:
+The result of the aggregation will have the group names as the new index along the grouped axis. In the case of multiple keys, the result is a MultiIndex by default, though this can be changed by using the as_index option.
+
+[List of standard aggregation functions](https://pandas-docs.github.io/pandas-docs-travis/user_guide/groupby.html#aggregation)
+
+```python
+# | use pandas standard aggregation methods
+df.groupby('user_id')['purchase_amount'].sum()
+# | is the same as
+df.groupby('user_id')['purchase_amount'].agg('sum')
+# | is the same as
+df.groupby('user_id')['purchase_amount'].agg(np.sum)
+
+# multiple aggregations at once
+df.groupby('A')['C'].agg([np.sum, np.mean, np.std])
+
+          sum      mean       std
+A                                
+bar  0.392940  0.130980  0.181231
+foo -1.796421 -0.359284  0.912265
+
+# | apply sum to all numerical columns
+df.groupby('A').agg('sum')
+df.groupby('A').agg([np.sum, np.mean, np.std])
+
+            C                             D                    
+          sum      mean       std       sum      mean       std
+A                                                              
+bar  0.392940  0.130980  0.181231  1.732707  0.577569  1.366330
+foo -1.796421 -0.359284  0.912265  2.824590  0.564918  0.884785
+
+
+
+# | don't use group names as new index
+df.groupby(['A', 'B'], as_index=False).agg(np.sum)
+
+# | get size of each group
+df.groupby('Gender').size()
+
+# | get group stats
+df.groupby('Gender').describe()
+```
+
+```python
+# | custom aggregation
+df.groupby('Gender').agg({'C': np.sum, 'Age': lambda x: np.std(x, ddof=1)})
+
+
+def concat_prod(sr_products):
+    # | sort product descriptions by length (#characters)
+    sr_products = sr_products.astype(str)
+    new_index = sr_products.str.len().sort_values(ascending=False).index
+    sr_products = sr_products.reindex(new_index)
+    # | aggregation
+    if len(sr_products) > 2:
+        return '~~~'.join(sr_products)
+    else:
+        return ''.join(sr_products)
+
+# | Method A
+# | Problem, in df_new, only the columns match_columns & lic_prod_cn will be included
+df_new = df_lic.groupby(match_columns)[lic_prod_cn].agg(concat_prod).reset_index()
+
+# | Method B
+# | if you want to keep all columns (e.g. just keep the first value of the corresponding groups, for columns that are not aggregated)
+agg_dict = {col_name: 'first' for col_name in df_lic if col_name not in match_columns}
+agg_dict[lic_prod_cn] = concat_prod
+
+df_lic = df_lic.groupby(match_columns).agg(agg_dict).reset_index()
+```
+
+```python
+# | How can I “merge” rows by same value in a column in Pandas with aggregation functions?
+aggregation_functions = {'price': 'sum', 'amount': 'sum', 'name': 'first'}
+df_new = df.groupby(df['id']).aggregate(aggregation_functions)
+```
+Note: agg is an alias for aggregate. Use the alias.
+
+Pandas custom aggregators:
+```
+date, cardio_time, muscles, muscle_time, stretch_time
+2018-01-01, 0, "biceps / lats", 40, 5
+2018-01-02, 30, "", 0, 10
+2018-01-03, 0, "lats / calf", 41, 6
+2018-01-03, 30, "hamstring", 4, 5
+2018-01-04, 0, "biceps / lats", 42, 8
+
+TO
+
+2018-01-01, 0, "biceps / lats", 40, 5
+2018-01-02, 30, "", 0, 10
+2018-01-03, 30, "lats / calf / hamstring", 45, 11
+2018-01-04, 0, "biceps / lats", 42, 8
+```
+```python
+custom_aggregator = lambda a: " / ".join(a) 
+data_.groupby(by='date').agg({'muscle_time': 'sum',
+                              'stretch_time': 'sum',
+                              'cardio_time': 'sum',
+                              'muscles': custom_aggregator}).reset_index()
+```
 
 ## Pivoting
 [Pivoting](https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html#reshaping)
@@ -306,7 +480,79 @@ March	132	141	178	193	236	235	267	317	356	362	406	419
 ```
 
 # MultiIndexing
-You can think of MultiIndex as an array of tuples where each tuple is unique. A MultiIndex can be created from a list of arrays (using MultiIndex.from_arrays()), an array of tuples (using MultiIndex.from_tuples()), a crossed set of iterables (using MultiIndex.from_product()), or a DataFrame (using MultiIndex.from_frame()).
+Both the .index as well as the .columns of a DataFrame can have various levels.
+In the following example, the index has two levels: ['Sex', 'Marital Status'], and the columns have two levels:['Heart Disease', 'High Blood Pressure'].
+
+```python
+colidx = pd.MultiIndex.from_product([('Yes', 'No'), ('Yes', 'No')],
+                                    names=['Heart Disease', 'High Blood Pressure'])
+rowidx = pd.MultiIndex.from_product([('Female', 'Male'), ('Single', 'Married')], 
+                                    names=['Sex', 'Marital Status'])
+
+df = pd.DataFrame(np.random.randint(10, size=(4, 4)), index=rowidx, columns=colidx)
+
+
+Heart Disease          Yes     No   
+High Blood Pressure    Yes No Yes No
+Sex    Marital Status              
+Female Single            5  0   3  3
+       Married           7  9   3  5
+Male   Single            2  4   7  6
+       Married           8  8   1  6
+
+# | reset_index(): Reset the index of the DataFrame, and use the default one instead. If the DataFrame has a MultiIndex, this method can remove one or more levels
+df.reset_index(level=0) # this makes a column out of the index column "Sex".
+df.reset_index() # this converts all indices to regular columns - introduces a RangeIndex
+
+# | select columns in multiindex columns
+df.iloc[:, df.columns.get_level_values(1)=='Yes']
+
+Heart Disease	    Yes	No
+High Blood Pressure	Yes	Yes
+Sex	    Marital Status		
+Female	Single	    5	5
+        Married	    5	4
+Male	Single	    4	9
+        Married	    2	0
+
+# | swap the levels 0&1
+df.swaplevel(0, 1, axis=0)
+
+# | drop a level of index or column
+df.index = df.index.droplevel(level=0)
+df.columns = df.columns.droplevel(level=0)
+
+# | set index
+df = df.reset_index('Marital Status') # make column out of index
+df = df.set_index('Marital Status') # make index out of column again
+
+df = df.set_index(['A', 'B'])
+
+# | accessing
+df3.loc[('Female', 'Single'), :]
+
+Heart Disease  High Blood Pressure
+Yes            Yes                    0
+               No                     4
+No             Yes                    5
+               No                     5
+Name: (Female, Single), dtype: int32
+
+df.loc[('Female', 'Single'), 'Yes']
+
+High Blood Pressure
+Yes    0
+No     4
+Name: (Female, Single), dtype: int32
+
+df.loc['Female', ('Yes', 'No')] # 'Yes'selects yes values from first column level, 'No' selects from second col-level
+
+Marital Status
+Single     4
+Married    3
+Name: (Yes, No), dtype: int32
+```
+A MultiIndex can be created from a list of arrays (using MultiIndex.from_arrays()), an array of tuples (using MultiIndex.from_tuples()), a crossed set of iterables (using MultiIndex.from_product()), or a DataFrame (using MultiIndex.from_frame()).
 
 "Multi-Columns"
 ```python
@@ -402,7 +648,7 @@ Time spans | Period | PeriodIndex | period[freq] | Period or period_range
 Date offsets | DateOffset | None | None | DateOffset
 
 [Pandas Timeseries Reference](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#)
-[Pandas Time/Date Components](https://pandas.pydata.org/pandas-docs/stable/user_guide/)timeseries.html#time-date-components
+[Pandas Time/Date Components](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#time-date-components)
 [Pandas Frequency Strings](https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects)
 
 ## Timezones
