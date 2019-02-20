@@ -60,6 +60,11 @@ df = df.append(sr) # the name of the series will be used as row index in the dat
 df.iloc[0] = sr # replaces first row of the dataframe with the series
 ```
 
+- Example 2
+```python
+df[['floor']] # returns a dataframe with one column
+df['floor'] # returns a series (much faster)
+```
 
 ## Append v.s. concatenate
 
@@ -171,6 +176,36 @@ df[float_columns] = df[float_columns].astype('float32')
 ```
 
 # Dataframe filtering and processing
+## where & masking
+```python
+# | where: Replace values by NaN where condition is False
+df.where(df>3)
+df['col'].where(df>3)
+
+# | mask: Replace values by NaN where condition is True
+df.mask(df>3)
+df['col'].mask(df>3)
+
+# | replace other values by 2
+df.where(df>2, other=2)
+df.mask(df>2, other=2)
+
+# | negate other values
+df.where(df>2, other=-df)
+df.mask(df>2, other=-df)
+
+# | apply funciton to other values
+df.where(df>2, lambda x: x*4)
+df.mask(df>2, lambda x: x*4)
+
+# or
+def foo(x):
+    return x*4
+
+df.where(df>2, foo)
+df.mask(df>2, foo)
+```
+
 ## Split dataframe into features & labels
 ```python
 df_labels = df.pop(label_colname)
@@ -253,17 +288,6 @@ for col_name in df_cat:
 
 See helper functions in pandas-helpers.py (""" FUNCTIONS FOR CATEGORICAL COLUMNS """)
 
-## Replace/remove strings in df columns
-```python
-
-df[col].replace('\n', '', regex=True, inplace=True)
-
-# remove all the characters after &# (including &#) for column - col_1
-df[col].replace(' &#.*', '', regex=True, inplace=True)
-
-# remove white space at the beginning of string 
-df[col] = df[col].str.lstrip()
-```
 
 # Preprocessing
 ## Standardization
@@ -804,16 +828,70 @@ df = pd.DataFrame(np.random.randn(1000, 4), index=ts.index, columns=list('ABCD')
 ```
 
 ### String accessor .str (for dtype='object')
+- processing
 ```python
-# convert column to UPPERCASE
+# | convert column to UPPERCASE
 df[col_name].str.upper()
 
-# count string occurence in each column
+# | count string occurence in each row
 df[col_name].str.count(r'\d') # counts number of digits
 
+# | count #chars in each row
+df[col_name].str.count() # counts number of digits
+
+# | count #tokens in each row
+df[col_name].str.split().str.count() # counts number of digits
+
+# | count #tokens in each row
+df[col_name].str.split().str.count() # counts number of digits
+
+# | split rows
+s = pd.Series(["this is a regular sentence", "https://docs.python.org/3/tutorial/index.html", np.nan])
+s.str.split() # splits rows by spaces (also a pattern can be used as argument). rows are now python lists with the splitted elements
+
+0                   [this, is, a, regular, sentence]
+1    [https://docs.python.org/3/tutorial/index.html]
+2                                                NaN
+dtype: object
+
+s.str.split(expand=True)  # this creates new columns with the different split values (instead of lists)
+
+s.str.rsplit("/", n=1, expand=True) # limit the number of splits to 1, and start spliting from the rights side
 ```
 
-Split string column in multiple columns using extract(regex)
+- filtering
+```python
+# | check if a certain word/pattern occurs in each row
+df[col_name].str.contains('daada')  # returns True/False for each row
+
+# | find occurences
+df[col_name].str.findall(r'[ABC]\d') # returns a list of the found occurences of the specified pattern for each row
+
+# | replace Weekdays by abbrevations (e.g. Monday --> Mon)
+df[col_name].str.replace(r'(\w+day\b)', lambda x: x.groups[0][:3]) # () in r'' creates a group with one element, which we acces with x.groups[0]
+
+# | create dataframe from regex groups (str.extract() uses first match of the pattern only)
+df[col_name].str.extract(r'(\d?\d):(\d\d)')
+df[col_name].str.extract(r'(?P<hours>\d?\d):(?P<minutes>\d\d)')
+df[col_name].str.extract(r'(?P<time>(?P<hours>\d?\d):(?P<minutes>\d\d))')
+
+# | if you want to take into account ALL matches in a row (not only first one):
+df[col_name].str.extractall(r'(\d?\d):(\d\d)') # this generates a multiindex with level 1 = 'match', indicating the order of the match
+```
+
+- Replace/remove strings in df columns
+```python
+
+df[col].replace('\n', '', regex=True, inplace=True)
+
+# remove all the characters after &# (including &#) for column - col_1
+df[col].replace(' &#.*', '', regex=True, inplace=True)
+
+# remove white space at the beginning of string 
+df[col] = df[col].str.lstrip()
+```
+
+- Split string column in multiple columns using extract(regex)
 ```python
 In [2]: addr = pd.Series([
    ...:      'Washington, D.C. 20003',
@@ -825,6 +903,9 @@ In [2]: addr = pd.Series([
 In [3]: regex = (r'(?P<city>[A-Za-z ]+), '       # One or more letters followed by ,
    ...:           r'(?P<state>[A-Z]{2}) '        # 2 capital letters
    ...:           r'(?P<zip>\d{5}(?:-\d{4})?)')  # 5-digits + optional 4-digit extension
+
+# or: (note in the above version, its actually ONE big regex which is matched, not three different ones)
+regex = (r'(?P<city>[A-Za-z ]+), (?P<state>[A-Z]{2}) (?P<zip>\d{5}(?:-\d{4})?)')  # 5-digits + optional 4-digit extension
 
 In [4]: addr.str.replace('.', '').str.extract(regex)
 Out[4]: 
