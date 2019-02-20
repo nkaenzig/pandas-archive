@@ -41,11 +41,29 @@ df.iloc[df['col1'] == 1]
 # gives index error!!!
 ```
 
-- reset_index (intruduces indices from 0 to len(df)-1)
+- index functions
 
 ```python
-df.reset_index(drop=True)
-# drop=True --> avoid the old index being added as a column:
+# | reset_index (introduces indices from 0 to len(df)-1)
+df = df.reset_index(drop=True) # drop=True --> avoid the old index being added as a column:
+
+# | Define a new index
+df = df.set_index(pd.RangeIndex(len(df)))
+# | Set the DataFrame index using existing columns.
+df = df.set_index('col_name', drop=True)
+
+# | Reindex
+# reindex() changes the indexes but keeps the values in the other columns associated to the indexes in the original df
+df = df.reindex(df['a'].values).drop('a', axis=1)
+
+   a  b
+0  1  3
+1  2  4
+
+     b
+1  4.0
+2  NaN
+
 ```
 
 ## Dataframes v.s. Series
@@ -479,8 +497,13 @@ data_.groupby(by='date').agg({'muscle_time': 'sum',
 ```
 
 ## Pivoting
+Caution: if the dataframe has multiple rows with different values for the specified "index" and the "columns" in pivot(), it will raise the error "ValueError: Index contains duplicate entries, cannot reshape", as Pandas doesn't know which value to take.
+So to use pivot, ensure first that you don't have duplicate rows (with different values).
+
+The pivot_table method comes to solve this problem. It works like pivot, but it aggregates the values from rows with duplicate entries for the specified columns.
+
 [Pivoting](https://pandas.pydata.org/pandas-docs/stable/user_guide/reshaping.html#reshaping)
-- example
+- pivot
 ```python
 import seaborn as sns
 df_flights_long = sns.load_dataset("flights")
@@ -502,6 +525,19 @@ January	112	115	145	171	196	204	242	284	315	340	360	417
 February	118	126	150	180	196	188	233	277	301	318	342	391
 March	132	141	178	193	236	235	267	317	356	362	406	419
 ```
+- pivot_table
+```python
+# | example 1
+ table = pivot_table(df, values='D', index=['A', 'B'],
+                     columns=['C'], aggfunc=np.sum)
+
+# | example 2 (multi-index/col)
+table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+                    aggfunc={'D': np.mean,
+                             'E': [min, max, np.mean]})
+```
+## Stack/unstack
+Let us assume we have a DataFrame with MultiIndices on the rows and columns. Stacking a DataFrame means moving (also rotating or pivoting) the innermost column index to become the innermost row index (i.e. column names of the highest column level)
 
 # MultiIndexing
 Both the .index as well as the .columns of a DataFrame can have various levels.
