@@ -231,8 +231,17 @@ df_features = df
 ```
 
 ## Dealing with missing values (np.nan)
-dropna() (which removes NA values) and fillna()
+How to check if there are missing values in data?
+```python
+# | check if any value in the dataframe is NaN
+df.isnull().values.any()
 
+# | bar plot of percentage of missing values per column
+nan_precentage_by_col = df.isnull().sum()*100/len(df)
+nan_precentage_by_col[nan_precentage_by_col > 0].sort_values(ascending=False).plot.bar()
+```
+
+dropna() (which removes NA values) and fillna()
 Often the missing values are not np.nan but have another value like 0 or '-'.
 You have to replace these first with np.nan to use pandas N/A-functions.
 ```python
@@ -296,10 +305,12 @@ for col_name in df_cat:
 
 One-hot encoding
 ```python
-for col_name in df_cat:
-     df_dummies = pd.get_dummies(df[col_name], prefix='category')
+for nr, col_name in enumerate(df_cat):
+     df_dummies = pd.get_dummies(df[col_name], prefix='{}category'.format(nr))
      df_cat = pd.concat([df_cat, df_dummies], axis=1)
      df_cat = df.drop(col_name, axis=1)
+
+     # note: '{}category'.format(nr) is important to avoid duplicate column names in output
 ```
 
 
