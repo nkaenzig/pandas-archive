@@ -272,6 +272,20 @@ df = df.fillna(df.mode())
 df = df.apply(lambda x:x.fillna(x.value_counts().index[0]))
 ```
 
+It might be benefitial to add new columns that indicate where there was originally a missing value (that was either filled, or in case of categorical variable where -1 values were replaced by 0 i.e. cat.codes += 1)
+
+```python
+# | Manual way
+for column in df.columns:
+    df[f'{column}_na'] = df[column].isna() == True    
+    
+# | In case you do one-hot encoding:
+df = pd.get_dummies(df, dummy_na=True)
+
+```
+
+dropna()
+
 ```python
 df.dropna(axis=0) # drops all ROWS with at least one N/A entry
 df.dropna(axis=0, how='all') # drops all ROWS where all elements are N/A
