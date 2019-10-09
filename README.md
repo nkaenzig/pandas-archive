@@ -283,7 +283,7 @@ df.dropna(axis=1, thresh=int(0.9*df.shape[0]))
 ```
 
 ## Categorical columns
-Split dataframe into categorical and numerical columns
+### Split dataframe into categorical and numerical columns
 ```python
 df_cat = df.select_dtypes(include=['object'])
 df_num = df.select_dtypes(exclude=['object'])
@@ -293,17 +293,48 @@ df.drop(df_cat.columns, axis=1, inplace=True)
 df_num = df._get_numeric_data()
 ```
 
-Enumerate categories
+### Enumerate categories
 ```python
-df_cat.astype('category')
+df_cat.astype('category').as_ordered()
 # A
 df_cat = df_cat.apply(lambda x: x.cat.codes)
+
 # B
+
 for col_name in df_cat:
     df_cat[col_name] = df_cat[col_name].cat.codes
+
+# C (if cat columns not in separate df)
+from pandas.api.types import is_string_dtype, is_numeric_dtype, is_categorical_dtype
+for n,c in df.items():
+        if is_string_dtype(c): df[n] = c.astype('category').cat.as_ordered()
+```
+Note: in case you don't remove the NaN values before converting to 'category', pandas will fill those with -1.
+In that case you might add +1 to all values, such that values start at 0 and not -1
+
+- Apply same categorical encoding to test/val set:
+```python
+# | save processed train_df to feather file (to save encoding information)
+os.makedirs('tmp', exist_ok=True)
+df_train.reset_index(drop=True).to_feather('tmp/train_df')
+
+# | read train_df from feather (just to get saved cat config)
+df_train = pd.read_feather('tmp/train_df')
+
+for n,c in df.items():
+    if (n in df_train.columns) and (df_train[n].dtype.name=='category'):
+        df[n] = c.astype('category').cat.as_ordered()
+        df[n].cat.set_categories(trn[n].cat.categories, ordered=True, inplace=True)
 ```
 
-One-hot encoding
+- What if a categorical variable should have a certain order (e.g. Low, Medium, High)
+```python
+df[n] = c.astype('category').cat.as_ordered()
+df['Usage'] = df['Usage'].cat.set_categories(['Low', 'Medium', 'High'], ordered=True)
+```
+
+
+### One-hot encoding
 ```python
 for nr, col_name in enumerate(df_cat):
      df_dummies = pd.get_dummies(df[col_name], prefix='{}category'.format(nr))
